@@ -1,0 +1,81 @@
+# Checagens de qualidade. Cada checagem conta as linhas que violam a regra;
+# 0 violações = passou.
+#   severity: error  -> reprova o pipeline (o gate para antes das marts)
+#   severity: warn   -> só aparece no relatório
+# stage: raw | staging | marts (define quando a checagem roda)
+
+as_of: "2026-06-30"   # data de referência da checagem de frescor (dados fictícios)
+
+checks:
+  # --- raw: só informativo; mostra o que a staging vai corrigir ---
+  - stage: raw
+    severity: warn
+    type: unique
+    table: raw_orders
+    columns: [order_id]
+
+  # --- staging: o gate ---
+  - stage: staging
+    type: unique
+    table: stg_orders
+    columns: [order_id]
+  - stage: staging
+    type: not_null
+    table: stg_orders
+    column: order_id
+  - stage: staging
+    type: not_null
+    table: stg_orders
+    column: supplier_id
+  - stage: staging
+    type: relationships
+    table: stg_orders
+    column: supplier_id
+    to_table: stg_suppliers
+    to_column: supplier_id
+  - stage: staging
+    severity: warn
+    type: accepted_values
+    table: stg_orders
+    column: status
+    values: [aberto, aprovado, entregue, cancelado]
+  - stage: staging
+    type: range
+    table: stg_order_items
+    column: quantity
+    min: 1
+  - stage: staging
+    severity: warn
+    type: reconciliation
+    table: stg_orders
+    key: order_id
+    value: total_amount
+    against_table: stg_order_items
+    against_key: order_id
+    against_value: "quantity * unit_price"
+    tolerance: 0.01
+  - stage: staging
+    type: freshness
+    table: stg_orders
+    column: order_date
+    max_age_days: 30
+
+  # --- marts ---
+  - stage: marts
+    type: unique
+    table: fct_orders
+    columns: [order_id]
+  - stage: marts
+    type: relationships
+    table: fct_orders
+    column: supplier_id
+    to_table: dim_suppliers
+    to_column: supplier_id
+  - stage: marts
+    type: row_count_min
+    table: fct_orders
+    min: 1
+  - stage: marts
+    type: unique
+    table: mart_supplier_monthly
+    columns: [supplier_id, year_month]
