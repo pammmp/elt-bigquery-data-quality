@@ -1,0 +1,12 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.adk/
+*.egg-info/
+.DS_Store
+
+data/generated/
+*.duckdb
+report.json

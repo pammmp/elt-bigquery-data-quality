@@ -1,0 +1,2 @@
+# Só para os scripts que falam com o BigQuery (scripts/estimate_cost.py).
+google-cloud-bigquery>=3.0
